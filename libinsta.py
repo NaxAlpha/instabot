@@ -1,7 +1,5 @@
 # Social Automation Library
 import re
-from logger import *
-from config import *
 from time import sleep
 from functools import wraps
 from selenium import webdriver
@@ -14,26 +12,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
 
 
-user_link_regex = re.compile(USER_LINK_REGEX)
-post_link_regex = re.compile(POST_LINK_REGEX)
-
-
-def logged(fx):
-	@wraps(fx)
-	def _fx(*args, **kwargs):
-		log('enter', fx.__name__)
-		fx(*args, **kwargs)
-		log('exit', fx.__name__)
-	return _fx
+user_link_regex = re.compile('instagram\.com\/([A-Za-z0-9_\.]+)\/$')
+post_link_regex = re.compile('instagram\.com\/p\/([A-Za-z0-9_]+)\/(\?.*)?$')
 
 
 def wait_for_element(browser, by, value):
-	WebDriverWait(browser, FAILWAIT).until(EC.presence_of_element_located((by, value)))
+	WebDriverWait(browser, 10).until(EC.presence_of_element_located((by, value)))
 	return browser.find_element(by, value)
 
 
 def random_wait():
-	sleep(rnd(MIN_WAIT, MAX_WAIT))
+	sleep(rnd(0, 2))
 	
 
 def is_user_link(link):
@@ -66,22 +55,6 @@ def new_tab(browser):
 		random_wait()
 		browser.close()
 		browser.switch_to.window(browser.window_handles[-1])
-
-
-def tabbed(fx):
-	@wraps(fx)
-	def _fx(self, *args, **kwargs):
-		with new_tab(self.browser):
-			return fx(self, *args, **kwargs)
-	return _fx
-
-	
-def tabbed_multi(fx):
-	@wraps(fx)
-	def _fx(self, *args, **kwargs):
-		with new_tab(self.browser):
-			return (yield from fx(self, *args, **kwargs))
-	return _fx
 
 
 def search_objects(browser, cond, count=-1, context=None):
@@ -120,6 +93,7 @@ class Post:
 		with new_tab(browser):
 			browser.get('https://instagram.com/p/' + self.post_id)
 			yield
+			random_wait()
 		self.browser = None
 	
 	@cached_property
@@ -176,6 +150,7 @@ class User:
 		with new_tab(browser):
 			browser.get('https://instagram.com/' + self.user_id)
 			yield
+			random_wait()
 		self.browser = None
 	
 	def _follow(self, mode):
@@ -210,10 +185,6 @@ class User:
 		return self.browser.\
 			find_element_by_css_selector('header section span>span>button').\
 			click()
-	
-	@staticmethod
-	def default():
-		return User(USERNAME)
 
 
 class Instagram:
@@ -225,7 +196,6 @@ class Instagram:
 		random_wait()
 		return wait_for_element(self.browser, by, value)
 	
-	@tabbed
 	def login(self, username, password):
 		browser = self.browser
 		browser.get('https://www.instagram.com/accounts/login/?source=auth_switcher')
@@ -245,34 +215,18 @@ class Instagram:
 	def session(self, username, password):
 		self.login(username, password)
 		try:
-			self.browser.get('https://instagram.com/')
 			yield
 		finally:
 			self.logout()
 	
-	@tabbed_multi
 	def posts_by_tag(self, tag, count=-1):
 		browser = self.browser
 		browser.get('https://instagram.com/explore/tags/' + tag)
 		for lnk in search_objects(self.browser, is_post_link, count):
 			yield get_post_id(lnk)
 	
-	@tabbed_multi
 	def users_recommended(self, count=-1):
 		browser = self.browser
 		browser.get('https://www.instagram.com/explore/people/suggested/')
 		for lnk in search_objects(self.browser, is_user_link, count):
 			yield get_user_id(lnk)
-	
-
-if __name__ == '__main__':
-	chrome = webdriver.Chrome()
-	insta = Instagram(chrome)
-	with insta.session(USERNAME, PASSWORD):
-		u = User('naxalpha')
-		with u.open(chrome):
-			for pid in u.posts(2):
-				Post(pid).toggle_like()
-	
-	chrome.quit()
-
