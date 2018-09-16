@@ -1,7 +1,6 @@
 # Social Automation Library
 import re
 from time import sleep
-from functools import wraps
 from selenium import webdriver
 from random import randint as rnd
 from contextlib import contextmanager
@@ -22,7 +21,7 @@ def wait_for_element(browser, by, value):
 
 
 def random_wait():
-	sleep(rnd(0, 2))
+	sleep(rnd(1, 5))
 	
 
 def is_user_link(link):
@@ -121,6 +120,7 @@ class Post:
 		except NoSuchElementException:
 			return None
 	
+	@property
 	def liked(self):
 		return self.browser.\
 			find_element_by_css_selector('button.coreSpriteHeartOpen>span').\
@@ -153,22 +153,20 @@ class User:
 			random_wait()
 		self.browser = None
 	
-	def _follow(self, mode):
+	def _follow(self, mode, count=-1):
 		browser = self.browser
 		browser.find_element_by_css_selector('a[href="/' + self.user_id + mode + '"]').click()
 		context = wait_for_element(browser, By.CSS_SELECTOR, 'div[role="dialog"]')
-		for item in search_objects(browser, is_user_link, -1, context):
+		for item in search_objects(browser, is_user_link, count, context):
 			yield get_user_id(item)
 		browser.execute_script('return arguments[0].parentNode;', context).click()
 		random_wait()
 	
-	@property
-	def followers(self):
-		return self._follow('/followers/')
+	def followers(self, count=-1):
+		return self._follow('/followers/', count)
 	
-	@property
-	def followed_by(self):
-		return self._follow('/following/')
+	def followed_by(self, count=-1):
+		return self._follow('/following/', count)
 	
 	def posts(self, count=-1):
 		for p in search_objects(self.browser, is_post_link, count):
@@ -180,9 +178,8 @@ class User:
 			find_element_by_css_selector('header section span>span>button').\
 			text == 'Following'
 	
-	@property
 	def toggle_follow(self):
-		return self.browser.\
+		self.browser.\
 			find_element_by_css_selector('header section span>span>button').\
 			click()
 
@@ -207,6 +204,11 @@ class Instagram:
 			if browser.current_url == 'https://www.instagram.com/#reactivated':
 				self.wait_for(By.XPATH, '//a[text()="Not Now"]').click()
 			random_wait()
+			try:
+				text = browser.find_element_by_css_selector('p[role="alert"]').text
+				raise Exception(text)
+			except NoSuchElementException:
+				pass
 	
 	def logout(self):
 		self.browser.get('https://instagram.com/accounts/logout')
