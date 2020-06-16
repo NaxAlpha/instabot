@@ -1,0 +1,1 @@
+pyinstaller --key Plz_Dont_Do_It --icon insta.ico --add-data "chromedriver.exe;." -F instaui.py
