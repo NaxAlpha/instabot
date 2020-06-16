@@ -1,0 +1,4 @@
+
+SERIAL_KEY = "#MCS8-4UPU-727F$"
+USER_NAMES = b'\xfc^\xe0\x9bx\x0b\x9d\xb8>\xf4\x16r\xdd\xfdAV'
+

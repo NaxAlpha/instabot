@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 from cmd import Cmd
 from libinsta import *
@@ -64,7 +64,7 @@ def command(fx):
 
 
 class InstaBot(Cmd):
-	prompt = '➡️ '
+	prompt = '> '
 	
 	def __init__(self, users):
 		super(InstaBot, self).__init__()
@@ -183,7 +183,7 @@ class InstaBot(Cmd):
 	def do_exit(self, arg):
 		"""Closes app: EXIT"""
 		self.do_end('')
-		exit(0)
+		sys.exit(0)
 
 
 if __name__ == '__main__':

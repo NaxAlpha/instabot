@@ -21,7 +21,7 @@ def wait_for_element(browser, by, value):
 
 
 def random_wait():
-	sleep(rnd(1, 5))
+	sleep(rnd(1, 3))
 	
 
 def is_user_link(link):
